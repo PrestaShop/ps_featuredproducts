@@ -153,7 +153,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             }
         }
 
-        return $output.$this->renderForm();
+        return $output . $this->renderForm();
     }
 
     public function renderForm()
@@ -217,7 +217,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         $helper->id = (int) Tools::getValue('id_carrier');
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'submitHomeFeatured';
-        $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false).'&configure='.$this->name.'&tab_module='.$this->tab.'&module_name='.$this->name;
+        $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false) . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = array(
             'fields_value' => $this->getConfigFieldsValues(),
