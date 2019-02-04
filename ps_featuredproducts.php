@@ -79,8 +79,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             && $this->registerHook('displayHome')
             && $this->registerHook('displayOrderConfirmation2')
             && $this->registerHook('displayCrossSellingShoppingCart')
-            && $this->registerHook('actionAdminGroupsControllerSaveAfter')
-        ;
+            && $this->registerHook('actionAdminGroupsControllerSaveAfter');
     }
 
     public function uninstall()
@@ -285,8 +284,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
         $query
             ->setResultsPerPage($nProducts)
-            ->setPage(1)
-        ;
+            ->setPage(1);
 
         if (Configuration::get('HOME_FEATURED_RANDOMIZE')) {
             $query->setSortOrder(SortOrder::random());
