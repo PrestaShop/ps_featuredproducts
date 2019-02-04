@@ -262,6 +262,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
                 'allProductsLink' => Context::getContext()->link->getCategoryLink($this->getConfigFieldsValues()['HOME_FEATURED_CAT']),
             );
         }
+
         return false;
     }
 
