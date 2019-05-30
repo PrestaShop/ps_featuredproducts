@@ -40,6 +40,11 @@ use PrestaShop\PrestaShop\Core\Product\Search\SortOrder;
 
 class Ps_FeaturedProducts extends Module implements WidgetInterface
 {
+    /**
+     * @var string Name of the module running on PS 1.6.x. Used for data migration.
+     */
+    const PS_16_EQUIVALENT_MODULE = 'homefeatured';
+
     private $templateFile;
 
     public function __construct()
@@ -65,11 +70,13 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
     public function install()
     {
-        $this->_clearCache('*');
+        if (!$this->uninstallPrestaShop16Module()) {
+            Configuration::updateValue('HOME_FEATURED_NBR', 8);
+            Configuration::updateValue('HOME_FEATURED_CAT', (int) Context::getContext()->shop->getCategory());
+            Configuration::updateValue('HOME_FEATURED_RANDOMIZE', false);
+        }
 
-        Configuration::updateValue('HOME_FEATURED_NBR', 8);
-        Configuration::updateValue('HOME_FEATURED_CAT', (int) Context::getContext()->shop->getCategory());
-        Configuration::updateValue('HOME_FEATURED_RANDOMIZE', false);
+        $this->_clearCache('*');
 
         return parent::install()
             && $this->registerHook('addproduct')
@@ -88,6 +95,27 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         $this->_clearCache('*');
 
         return parent::uninstall();
+    }
+
+    /**
+     * Migrate data from 1.6 equivalent module (if applicable), then uninstall
+     */
+    public function uninstallPrestaShop16Module()
+    {
+        if (!Module::isInstalled(self::PS_16_EQUIVALENT_MODULE)) {
+            return false;
+        }
+        $oldModule = Module::getInstanceByName(self::PS_16_EQUIVALENT_MODULE);
+        if ($oldModule) {
+            // This closure calls the parent class to prevent data to be erased
+            // It allows the new module to be configured without migration
+            $parentUninstallClosure = function() {
+                return parent::uninstall();
+            };
+            $parentUninstallClosure = $parentUninstallClosure->bindTo($oldModule, get_class($oldModule));
+            $parentUninstallClosure();
+        }
+        return true;
     }
 
     public function hookAddProduct($params)
