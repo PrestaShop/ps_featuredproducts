@@ -319,4 +319,20 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
         return $products_for_template;
     }
+    
+    protected function getCacheId($name = null)
+    {
+        $cacheId = parent::getCacheId($name);
+        if (empty($this->context->customer)) {
+            $defaultTaxRule = Configuration::get('DEFAULT_TAX_RULE');
+            $taxAddressType = Configuration::get('PS_TAX_ADDRESS_TYPE');
+            $address = Address::initialize($this->context->cart->$taxAddressType, true);
+            $taxManager = TaxManagerFactory::getManager($address, $defaultTaxRule);
+            $cacheId .= '|' . $taxManager->getTaxCalculator()->getTotalRate();
+        } else {
+            $cacheId .= '|' . $this->context->customer->id;
+        }
+
+        return $cacheId;
+    }
 }
