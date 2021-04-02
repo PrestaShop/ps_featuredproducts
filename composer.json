@@ -12,9 +12,23 @@
   "require": {
     "php": ">=5.4.0"
   },
+  "require-dev": {
+    "prestashop/php-dev-tools": "^3.4"
+  },
+  "autoload": {
+    "classmap": [
+      "ps_featuredproducts.php"
+    ],
+    "exclude-from-classmap": []
+  },
   "config": {
     "preferred-install": "dist",
-    "prepend-autoloader": false
+    "classmap-authoritative": true,
+    "optimize-autoloader": true,
+    "prepend-autoloader": false,
+    "platform": {
+      "php": "5.6"
+    }
   },
   "type": "prestashop-module"
 }
