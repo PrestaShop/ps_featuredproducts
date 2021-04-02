@@ -135,7 +135,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             if (!Validate::isBool($rand)) {
                 $errors[] = $this->trans('Invalid value for the "randomize" flag.', [], 'Modules.Featuredproducts.Admin');
             }
-            if (isset($errors) && count($errors)) {
+            if (count($errors)) {
                 $output = $this->displayError(implode('<br />', $errors));
             } else {
                 Configuration::updateValue('HOME_FEATURED_NBR', (int) $nbr);
