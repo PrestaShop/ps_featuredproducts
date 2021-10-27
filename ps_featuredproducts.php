@@ -115,7 +115,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     {
         $this->_clearCache('*');
     }
-    
+
     public function hookActionProductSave($params)
     {
         $this->_clearCache('*');
@@ -274,14 +274,15 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     }
 
     protected function getCacheId($name = null)
-    { 
-        $cacheId = parent::getCacheId($name); 
-        if(isset($this->context->customer->id)){
-            $cacheId .= '|'.(int)$this->context->customer->id;
-        } 
+    {
+        $cacheId = parent::getCacheId($name);
+        if (isset($this->context->customer->id)) {
+            $cacheId .= '|' . (int) $this->context->customer->id;
+        }
+
         return $cacheId;
     }
-    
+
     protected function getProducts()
     {
         $category = new Category((int) Configuration::get('HOME_FEATURED_CAT'));
