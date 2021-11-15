@@ -314,7 +314,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
         return $products_for_template;
     }
-    
+
     protected function getCacheId($name = null)
     {
         $cacheId = parent::getCacheId($name);
