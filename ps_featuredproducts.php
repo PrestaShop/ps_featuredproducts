@@ -41,7 +41,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     {
         $this->name = 'ps_featuredproducts';
         $this->author = 'PrestaShop';
-        $this->version = '2.1.0';
+        $this->version = '2.1.1';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
@@ -70,7 +70,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             && $this->registerHook('addproduct')
             && $this->registerHook('updateproduct')
             && $this->registerHook('deleteproduct')
-            && $this->registerHook('categoryUpdate')
+            && $this->registerHook('actionCategoryUpdate')
             && $this->registerHook('displayHome')
             && $this->registerHook('displayOrderConfirmation2')
             && $this->registerHook('displayCrossSellingShoppingCart')
@@ -100,7 +100,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         $this->_clearCache('*');
     }
 
-    public function hookCategoryUpdate($params)
+    public function hookActionCategoryUpdate($params)
     {
         $this->_clearCache('*');
     }
