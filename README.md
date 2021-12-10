@@ -2,7 +2,7 @@
 
 ## About
 
-Displays featured products in the central column of your homepage.
+Pick a category and highlight its items, enhance customer experience with a lively homepage.
 
 ## Reporting issues
 
