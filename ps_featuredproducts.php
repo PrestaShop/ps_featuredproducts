@@ -41,7 +41,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     {
         $this->name = 'ps_featuredproducts';
         $this->author = 'PrestaShop';
-        $this->version = '2.1.1';
+        $this->version = '2.1.2';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
@@ -67,9 +67,9 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         Configuration::updateValue('HOME_FEATURED_RANDOMIZE', false);
 
         return parent::install()
-            && $this->registerHook('addproduct')
-            && $this->registerHook('updateproduct')
-            && $this->registerHook('deleteproduct')
+            && $this->registerHook('actionProductAdd')
+            && $this->registerHook('actionProductUpdate')
+            && $this->registerHook('actionProductDelete')
             && $this->registerHook('displayHome')
             && $this->registerHook('displayOrderConfirmation2')
             && $this->registerHook('displayCrossSellingShoppingCart')
@@ -85,17 +85,17 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         return parent::uninstall();
     }
 
-    public function hookAddProduct($params)
+    public function hookActionProductAdd($params)
     {
         $this->_clearCache('*');
     }
 
-    public function hookUpdateProduct($params)
+    public function hookActionProductUpdate($params)
     {
         $this->_clearCache('*');
     }
 
-    public function hookDeleteProduct($params)
+    public function hookActionProductDelete($params)
     {
         $this->_clearCache('*');
     }
