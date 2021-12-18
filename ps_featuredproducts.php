@@ -72,7 +72,6 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             && $this->registerHook('actionProductDelete')
             && $this->registerHook('displayHome')
             && $this->registerHook('displayOrderConfirmation2')
-            && $this->registerHook('displayCrossSellingShoppingCart')
             && $this->registerHook('actionCategoryUpdate')
             && $this->registerHook('actionAdminGroupsControllerSaveAfter')
         ;
