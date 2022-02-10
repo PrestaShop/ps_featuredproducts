@@ -6,6 +6,6 @@ parameters:
     # From PHPStan 0.12, paths to check are relative to the neon file
     - ../../ps_featuredproducts.php
     - ../../translations/
+    - ../../upgrade/
     - ../../views/
-  reportUnmatchedIgnoredErrors: false
   level: 5
