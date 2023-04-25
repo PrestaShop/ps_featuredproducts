@@ -61,6 +61,8 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         Configuration::updateValue('HOME_FEATURED_NBR', 8);
         Configuration::updateValue('HOME_FEATURED_CAT', (int) Context::getContext()->shop->getCategory());
         Configuration::updateValue('HOME_FEATURED_RANDOMIZE', false);
+        Configuration::updateValue('HOME_FEATURED_POPULAR_FIRST', false);
+        Configuration::updateValue('HOME_FEATURED_ONLY_AVAILABLE', false);
 
         return parent::install()
             && $this->registerHook('actionProductAdd')
@@ -130,12 +132,25 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             if (!Validate::isBool($rand)) {
                 $errors[] = $this->trans('Invalid value for the "randomize" flag.', [], 'Modules.Featuredproducts.Admin');
             }
+
+            $popularFirst = Tools::getValue('HOME_FEATURED_POPULAR_FIRST');
+            if (!Validate::isBool($popularFirst)) {
+                $errors[] = $this->trans('Invalid value for the "popular first" flag.', [], 'Modules.Featuredproducts.Admin');
+            }
+
+            $onlyAvailable = Tools::getValue('HOME_FEATURED_ONLY_AVAILABLE');
+            if (!Validate::isBool($onlyAvailable)) {
+                $errors[] = $this->trans('Invalid value for the "only available" flag.', [], 'Modules.Featuredproducts.Admin');
+            }
+
             if (count($errors)) {
                 $output = $this->displayError(implode('<br />', $errors));
             } else {
                 Configuration::updateValue('HOME_FEATURED_NBR', (int) $nbr);
                 Configuration::updateValue('HOME_FEATURED_CAT', (int) $cat);
                 Configuration::updateValue('HOME_FEATURED_RANDOMIZE', (bool) $rand);
+                Configuration::updateValue('HOME_FEATURED_POPULAR_FIRST', (bool) $popularFirst);
+                Configuration::updateValue('HOME_FEATURED_ONLY_AVAILABLE', (bool) $onlyAvailable);
 
                 $this->_clearCache('*');
 
@@ -192,6 +207,44 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
                             ],
                         ],
                     ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Display popular products first', [], 'Modules.Featuredproducts.Admin'),
+                        'name' => 'HOME_FEATURED_POPULAR_FIRST',
+                        'class' => 'fixed-width-xs',
+                        'desc' => $this->trans('Enable if you wish to display popular products first, based on amount of orders (default: no).', [], 'Modules.Featuredproducts.Admin'),
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Yes', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('No', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->trans('Display only available products', [], 'Modules.Featuredproducts.Admin'),
+                        'name' => 'HOME_FEATURED_ONLY_AVAILABLE',
+                        'class' => 'fixed-width-xs',
+                        'desc' => $this->trans('Enable if you wish to display only products that are available for order (default: no).', [], 'Modules.Featuredproducts.Admin'),
+                        'values' => [
+                            [
+                                'id' => 'active_on',
+                                'value' => 1,
+                                'label' => $this->trans('Yes', [], 'Admin.Global'),
+                            ],
+                            [
+                                'id' => 'active_off',
+                                'value' => 0,
+                                'label' => $this->trans('No', [], 'Admin.Global'),
+                            ],
+                        ],
+                    ],
                 ],
                 'submit' => [
                     'title' => $this->trans('Save', [], 'Admin.Actions'),
@@ -225,6 +278,8 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             'HOME_FEATURED_NBR' => Tools::getValue('HOME_FEATURED_NBR', (int) Configuration::get('HOME_FEATURED_NBR')),
             'HOME_FEATURED_CAT' => Tools::getValue('HOME_FEATURED_CAT', (int) Configuration::get('HOME_FEATURED_CAT')),
             'HOME_FEATURED_RANDOMIZE' => Tools::getValue('HOME_FEATURED_RANDOMIZE', (bool) Configuration::get('HOME_FEATURED_RANDOMIZE')),
+            'HOME_FEATURED_POPULAR_FIRST' => Tools::getValue('HOME_FEATURED_POPULAR_FIRST', (bool) Configuration::get('HOME_FEATURED_POPULAR_FIRST')),
+            'HOME_FEATURED_ONLY_AVAILABLE' => Tools::getValue('HOME_FEATURED_ONLY_AVAILABLE', (bool) Configuration::get('HOME_FEATURED_ONLY_AVAILABLE')),
         ];
     }
 
@@ -272,12 +327,12 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         }
 
         $random = !!Configuration::get('HOME_FEATURED_RANDOMIZE');
-        $popular = !!Configuration::get('HOME_FEATURED_POPULAR');
-        $onlyAvailable = !Configuration::get('HOME_FEATURED_ONLY_AVAILABLE');
+        $popularFirst = !!Configuration::get('HOME_FEATURED_POPULAR_FIRST');
+        $onlyAvailable = !!Configuration::get('HOME_FEATURED_ONLY_AVAILABLE');
 
         $outOfStockGlobal = (int) Configuration::get("PS_ORDER_OUT_OF_STOCK");
 
-        $sql = 'SELECT p.*, product_shop.*, stock.out_of_stock, IFNULL(stock.quantity, 0) AS quantity' . (Combination::isFeatureActive() ? ', IFNULL(product_attribute_shop.id_product_attribute, 0) AS id_product_attribute,
+        $sql = 'SELECT p.*, o.orders_placed, product_shop.*, stock.out_of_stock, IFNULL(stock.quantity, 0) AS quantity' . (Combination::isFeatureActive() ? ', IFNULL(product_attribute_shop.id_product_attribute, 0) AS id_product_attribute,
 					product_attribute_shop.minimal_quantity AS product_attribute_minimal_quantity' : '') . ', pl.`description`, pl.`description_short`, pl.`available_now`,
 					pl.`available_later`, pl.`link_rewrite`, pl.`meta_description`, pl.`meta_keywords`, pl.`meta_title`, pl.`name`, image_shop.`id_image` id_image,
 					il.`legend` as legend, m.`name` AS manufacturer_name, cl.`name` AS category_default,
@@ -303,6 +358,13 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 					AND il.`id_lang` = ' . (int) $this->context->language->id . ')
 				LEFT JOIN `' . _DB_PREFIX_ . 'manufacturer` m
 					ON m.`id_manufacturer` = p.`id_manufacturer`
+                LEFT JOIN (
+                    SELECT od.product_id, count(od.id_order) as orders_placed
+                    FROM `' . _DB_PREFIX_ . 'order_detail` od
+                    LEFT JOIN `' . _DB_PREFIX_ . 'orders` o
+                        ON o.`id_order` = od.`id_order`
+                    GROUP BY od.product_id
+                ) o ON o.product_id = p.id_product
 				WHERE product_shop.`id_shop` = ' . (int) $this->context->shop->id . '
 					AND cp.`id_category` = ' . (int) $idCategory . '
                     AND product_shop.`active` = 1
@@ -315,11 +377,25 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
                     )'
                     : '');
 
-        if ($random === true) {
-            $sql .= ' ORDER BY RAND() LIMIT ' . (int) $nProducts;
+        if ($random) {
+            if ($popularFirst) {
+                $sql .= ' ORDER BY -LOG(1.0 - RAND()) / (IFNULL(o.orders_placed, 0.1)) ';
+            } else {
+                $sql .= ' ORDER BY RAND() ';
+            }
         } else {
-            $sql .= ' ORDER BY cp.`position` ASC LIMIT ' . (int) $nProducts;
+            if ($popularFirst) {
+                $sql .= ' ORDER BY o.orders_placed DESC, cp.`position` ASC ';
+            }
+            else {
+                $sql .= ' ORDER BY cp.`position` ASC ';
+            }
         }
+
+        $sql .= ' LIMIT ' . (int) $nProducts;
+
+        // print($sql);
+        // exit;
 
         $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($sql, true, false);
 
