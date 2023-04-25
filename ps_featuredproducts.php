@@ -27,11 +27,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-use PrestaShop\PrestaShop\Adapter\Category\CategoryProductSearchProvider;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
-use PrestaShop\PrestaShop\Core\Product\Search\ProductSearchContext;
-use PrestaShop\PrestaShop\Core\Product\Search\ProductSearchQuery;
-use PrestaShop\PrestaShop\Core\Product\Search\SortOrder;
 
 class Ps_FeaturedProducts extends Module implements WidgetInterface
 {
@@ -263,37 +259,76 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
     protected function getProducts()
     {
-        $category = new Category((int) Configuration::get('HOME_FEATURED_CAT'));
-
-        $searchProvider = new CategoryProductSearchProvider(
-            $this->context->getTranslator(),
-            $category
-        );
-
-        $context = new ProductSearchContext($this->context);
-
-        $query = new ProductSearchQuery();
+        $idCategory = (int) Configuration::get('HOME_FEATURED_CAT');
 
         $nProducts = Configuration::get('HOME_FEATURED_NBR');
         if ($nProducts < 0) {
             $nProducts = 12;
         }
 
-        $query
-            ->setResultsPerPage($nProducts)
-            ->setPage(1)
-        ;
-
-        if (Configuration::get('HOME_FEATURED_RANDOMIZE')) {
-            $query->setSortOrder(SortOrder::random());
-        } else {
-            $query->setSortOrder(new SortOrder('product', 'position', 'asc'));
+        $nbDaysNewProduct = Configuration::get('PS_NB_DAYS_NEW_PRODUCT');
+        if (!Validate::isUnsignedInt($nbDaysNewProduct)) {
+            $nbDaysNewProduct = 20;
         }
 
-        $result = $searchProvider->runQuery(
-            $context,
-            $query
-        );
+        $random = !!Configuration::get('HOME_FEATURED_RANDOMIZE');
+        $popular = !!Configuration::get('HOME_FEATURED_POPULAR');
+        $onlyAvailable = !Configuration::get('HOME_FEATURED_ONLY_AVAILABLE');
+
+        $outOfStockGlobal = (int) Configuration::get("PS_ORDER_OUT_OF_STOCK");
+
+        $sql = 'SELECT p.*, product_shop.*, stock.out_of_stock, IFNULL(stock.quantity, 0) AS quantity' . (Combination::isFeatureActive() ? ', IFNULL(product_attribute_shop.id_product_attribute, 0) AS id_product_attribute,
+					product_attribute_shop.minimal_quantity AS product_attribute_minimal_quantity' : '') . ', pl.`description`, pl.`description_short`, pl.`available_now`,
+					pl.`available_later`, pl.`link_rewrite`, pl.`meta_description`, pl.`meta_keywords`, pl.`meta_title`, pl.`name`, image_shop.`id_image` id_image,
+					il.`legend` as legend, m.`name` AS manufacturer_name, cl.`name` AS category_default,
+					DATEDIFF(product_shop.`date_add`, DATE_SUB("' . date('Y-m-d') . ' 00:00:00",
+					INTERVAL ' . (int) $nbDaysNewProduct . ' DAY)) > 0 AS new, product_shop.price AS orderprice
+				FROM `' . _DB_PREFIX_ . 'category_product` cp
+				LEFT JOIN `' . _DB_PREFIX_ . 'product` p
+					ON p.`id_product` = cp.`id_product`
+				' . Shop::addSqlAssociation('product', 'p') .
+                (Combination::isFeatureActive() ? ' LEFT JOIN `' . _DB_PREFIX_ . 'product_attribute_shop` product_attribute_shop
+				ON (p.`id_product` = product_attribute_shop.`id_product` AND product_attribute_shop.`default_on` = 1 AND product_attribute_shop.id_shop=' . (int) $this->context->shop->id . ')' : '') . '
+				' . Product::sqlStock('p', 0) . '
+				LEFT JOIN `' . _DB_PREFIX_ . 'category_lang` cl
+					ON (product_shop.`id_category_default` = cl.`id_category`
+					AND cl.`id_lang` = ' . (int) $this->context->language->id . Shop::addSqlRestrictionOnLang('cl') . ')
+				LEFT JOIN `' . _DB_PREFIX_ . 'product_lang` pl
+					ON (p.`id_product` = pl.`id_product`
+					AND pl.`id_lang` = ' . (int) $this->context->language->id . Shop::addSqlRestrictionOnLang('pl') . ')
+				LEFT JOIN `' . _DB_PREFIX_ . 'image_shop` image_shop
+					ON (image_shop.`id_product` = p.`id_product` AND image_shop.cover=1 AND image_shop.id_shop=' . (int) $this->context->shop->id . ')
+				LEFT JOIN `' . _DB_PREFIX_ . 'image_lang` il
+					ON (image_shop.`id_image` = il.`id_image`
+					AND il.`id_lang` = ' . (int) $this->context->language->id . ')
+				LEFT JOIN `' . _DB_PREFIX_ . 'manufacturer` m
+					ON m.`id_manufacturer` = p.`id_manufacturer`
+				WHERE product_shop.`id_shop` = ' . (int) $this->context->shop->id . '
+					AND cp.`id_category` = ' . (int) $idCategory . '
+                    AND product_shop.`active` = 1
+                    AND product_shop.`visibility` IN ("both", "catalog")'
+                    . ($onlyAvailable ? ' 
+                    AND (
+                        (stock.out_of_stock = 2 AND ' . ($outOfStockGlobal == 0 ? 'IFNULL(stock.quantity, 0) > 0' : 'TRUE') . ')
+                        OR (stock.out_of_stock = 1)
+                        OR (stock.out_of_stock = 0 AND IFNULL(stock.quantity, 0) > 0)
+                    )'
+                    : '');
+
+        if ($random === true) {
+            $sql .= ' ORDER BY RAND() LIMIT ' . (int) $nProducts;
+        } else {
+            $sql .= ' ORDER BY cp.`position` ASC LIMIT ' . (int) $nProducts;
+        }
+
+        $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($sql, true, false);
+
+        if (!$result) {
+            $result = [];
+        }
+
+        // Modify SQL result
+        $products = Product::getProductsProperties($this->context->language->id, $result);
 
         $assembler = new ProductAssembler($this->context);
 
@@ -303,7 +338,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
         $products_for_template = [];
 
-        foreach ($result->getProducts() as $rawProduct) {
+        foreach ($products as $rawProduct) {
             $products_for_template[] = $presenter->present(
                 $presentationSettings,
                 $assembler->assembleProduct($rawProduct),
