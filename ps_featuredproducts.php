@@ -394,9 +394,6 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
         $sql .= ' LIMIT ' . (int) $nProducts;
 
-        // print($sql);
-        // exit;
-
         $result = Db::getInstance(_PS_USE_SQL_SLAVE_)->executeS($sql, true, false);
 
         if (!$result) {
