@@ -41,7 +41,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     {
         $this->name = 'ps_featuredproducts';
         $this->author = 'PrestaShop';
-        $this->version = '2.1.4';
+        $this->version = '2.1.5';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
