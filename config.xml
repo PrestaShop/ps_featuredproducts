@@ -2,7 +2,7 @@
 <module>
     <name>ps_featuredproducts</name>
     <displayName><![CDATA[Featured products]]></displayName>
-    <version><![CDATA[2.1.4]]></version>
+    <version><![CDATA[2.1.5]]></version>
     <description><![CDATA[Displays featured products in the central column of your homepage.]]></description>
     <author><![CDATA[PrestaShop]]></author>
     <tab><![CDATA[front_office_features]]></tab>
