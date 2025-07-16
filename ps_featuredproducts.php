@@ -324,12 +324,19 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
             );
         }
 
+        // Now, we can present the products for the template.
         $products_for_template = [];
+        $rawProducts = $result->getProducts();
 
-        foreach ($result->getProducts() as $rawProduct) {
+        // Assemble & present in bulk or separately, depending on core version
+        $assembleInBulk = method_exists($assembler, 'assembleProducts');
+        if ($assembleInBulk) {
+            $rawProducts = $assembler->assembleProducts($rawProducts);
+        }
+        foreach ($rawProducts as $rawProduct) {
             $products_for_template[] = $presenter->present(
                 $presentationSettings,
-                $assembler->assembleProduct($rawProduct),
+                ($assembleInBulk ? $rawProduct : $assembler->assembleProduct($rawProduct)),
                 $this->context->language
             );
         }
