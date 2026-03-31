@@ -44,7 +44,7 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
     {
         $this->name = 'ps_featuredproducts';
         $this->author = 'PrestaShop';
-        $this->version = '2.1.6';
+        $this->version = '3.0.0';
         $this->need_instance = 0;
 
         $this->ps_versions_compliancy = [
@@ -63,58 +63,14 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
     public function install()
     {
-        $this->_clearCache('*');
-
         Configuration::updateValue('HOME_FEATURED_NBR', 8);
         Configuration::updateValue('HOME_FEATURED_CAT', (int) Context::getContext()->shop->getCategory());
         Configuration::updateValue('HOME_FEATURED_RANDOMIZE', false);
 
         return parent::install()
-            && $this->registerHook('actionProductAdd')
-            && $this->registerHook('actionProductUpdate')
-            && $this->registerHook('actionProductDelete')
             && $this->registerHook('displayHome')
             && $this->registerHook('displayOrderConfirmation2')
-            && $this->registerHook('actionCategoryUpdate')
-            && $this->registerHook('actionAdminGroupsControllerSaveAfter')
         ;
-    }
-
-    public function uninstall()
-    {
-        $this->_clearCache('*');
-
-        return parent::uninstall();
-    }
-
-    public function hookActionProductAdd($params)
-    {
-        $this->_clearCache('*');
-    }
-
-    public function hookActionProductUpdate($params)
-    {
-        $this->_clearCache('*');
-    }
-
-    public function hookActionProductDelete($params)
-    {
-        $this->_clearCache('*');
-    }
-
-    public function hookActionCategoryUpdate($params)
-    {
-        $this->_clearCache('*');
-    }
-
-    public function hookActionAdminGroupsControllerSaveAfter($params)
-    {
-        $this->_clearCache('*');
-    }
-
-    public function _clearCache($template, $cache_id = null, $compile_id = null)
-    {
-        parent::_clearCache($this->templateFile);
     }
 
     public function getContent()
@@ -143,8 +99,6 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
                 Configuration::updateValue('HOME_FEATURED_NBR', (int) $nbr);
                 Configuration::updateValue('HOME_FEATURED_CAT', (int) $cat);
                 Configuration::updateValue('HOME_FEATURED_RANDOMIZE', (bool) $rand);
-
-                $this->_clearCache('*');
 
                 $output = $this->displayConfirmation($this->trans('The settings have been updated.', [], 'Admin.Notifications.Success'));
             }
@@ -237,17 +191,15 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
 
     public function renderWidget($hookName = null, array $configuration = [])
     {
-        if (!$this->isCached($this->templateFile, $this->getCacheId('ps_featuredproducts'))) {
-            $variables = $this->getWidgetVariables($hookName, $configuration);
+        $variables = $this->getWidgetVariables($hookName, $configuration);
 
-            if (empty($variables)) {
-                return false;
-            }
-
-            $this->smarty->assign($variables);
+        if (empty($variables)) {
+            return false;
         }
 
-        return $this->fetch($this->templateFile, $this->getCacheId('ps_featuredproducts'));
+        $this->smarty->assign($variables);
+
+        return $this->fetch($this->templateFile);
     }
 
     public function getWidgetVariables($hookName = null, array $configuration = [])
@@ -342,15 +294,5 @@ class Ps_FeaturedProducts extends Module implements WidgetInterface
         }
 
         return $products_for_template;
-    }
-
-    protected function getCacheId($name = null)
-    {
-        $cacheId = parent::getCacheId($name);
-        if (!empty($this->context->customer->id)) {
-            $cacheId .= '|' . $this->context->customer->id;
-        }
-
-        return $cacheId;
     }
 }
